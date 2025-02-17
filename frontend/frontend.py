@@ -5,7 +5,7 @@ from agno.storage.agent.postgres import PostgresAgentStorage
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from backend.metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_cluster_health, get_diskoccupation
+from backend.metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_cluster_health, get_diskoccupation, get_high_latency_osds
 from backend.scrape_metricsdata import scrape_metrics
 from langchain.tools import Tool
 from langchain.memory import ConversationBufferMemory
@@ -36,8 +36,21 @@ def checkrecent_osd_crashes(*args, **kwargs):
 
 def getcluster_health(*args, **kwargs):
     response = get_cluster_health(*args, **kwargs)
-    return response
+    if response:
+        return " ## 📊 **Ceph Health status** \n" + "\n ".join(
+            [f"{response["health"]} \n "]
+        )
+    else:
+        return "❌ No high latency OSDs found or there was an issue with the data."
 
+def checkhigh_latency_osds(*args, **kwargs):
+    response =  get_high_latency_osds(*args, **kwargs)
+    if response:
+        return " ## 📊 **Ceph High Latency OSDs** \n" + "\n ".join(
+            [f"OSD ID: {res['osd_id']}, Max Latency: {res['max_latency']}ms, Status: {res['status']} - {res['description']} \n " for res in response["high_latency_osds"]]
+        )
+    else:
+        return "❌ No high latency OSDs found or there was an issue with the data."
 
 # Define Tools
 tools = [
@@ -63,6 +76,12 @@ tools = [
         name="Check Cluster health",
         func=getcluster_health,
         description="Check cluster health",
+        return_direct=True,  # Ensures the response is directly sent to the user
+    ),
+    Tool(
+        name="Check high latency OSDs",
+        func=checkhigh_latency_osds,
+        description="Check high latency OSDs",
         return_direct=True,  # Ensures the response is directly sent to the user
     ),
 ]
@@ -272,7 +291,7 @@ if prompt := st.chat_input("Type your message here..."):
     with st.chat_message("assistant"):
         with st.spinner("🤔 Thinking..."):       
             response = process_query(prompt)
-            st.write(response)
+            st.markdown(response)
             current_chat.messages.append({"role": "assistant", "content": response})
 
     st.rerun()

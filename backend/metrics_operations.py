@@ -104,8 +104,8 @@ def check_recent_osd_crashes(*args, **kwargs):
         cursor.close()
         conn.close()
         
-def get_cluster_health():
-    query = "SELECT MAX(value) FROM ceph_health_status;"
+def get_cluster_health(*args, **kwargs):
+    query = "SELECT MAX(value) FROM ceph_cephhealthstatus_metrics;"
     
     conn = get_db_conn()
     if not conn:
@@ -135,5 +135,73 @@ def get_cluster_health():
     finally:
         cursor.close()
         conn.close()
+        
+def get_high_latency_osds(*args, **kwargs):
+    query = """
+    SELECT 
+        labels->>'ceph_daemon' AS osd_id, 
+        MAX(value) AS max_latency 
+    FROM ceph_cephosdapplylatencyms_metrics
+    WHERE timestamp >= %s AND timestamp <= %s
+    GROUP BY labels->>'ceph_daemon'
+    ORDER BY max_latency DESC
+    LIMIT 5;
+    """
+    
+    conn = get_db_conn()
+    if not conn:
+        return {"status": "error", "message": "❌ Database connection failed."}
+
+    cursor = conn.cursor()
+    try:
+
+        start_time = '2025-02-14 16:40:00'
+        end_time = '2025-02-17 16:40:10'
+        
+        cursor.execute(query, (start_time, end_time))
+        results = cursor.fetchall()
+
+        if not results:
+            return {"status": "error", "message": "⚠️ No high-latency OSDs found."}
+
+        latency_thresholds = {
+            "low": {"status": "🟢 Latency is within normal range", "description": "The OSD is performing well with acceptable latency."},
+            "medium": {"status": "🟡 Latency is higher than usual", "description": "The OSD has some latency, but it is not critical."},
+            "high": {"status": "🔴 High latency detected", "description": "The OSD is experiencing significant latency, which may impact cluster performance."}
+        }
+
+        high_latency_osds = []
+
+        for row in results:
+            osd_id, max_latency = row
+
+            # Determine latency category based on thresholds
+            if max_latency < 50:
+                latency_category = "low"
+            elif max_latency < 200:
+                latency_category = "medium"
+            else:
+                latency_category = "high"
+
+            latency_info = latency_thresholds[latency_category]
+
+            high_latency_osds.append({
+                "osd_id": osd_id,
+                "max_latency": max_latency,
+                "status": latency_info["status"],
+                "description": latency_info["description"]
+            })
+
+        return {
+            "high_latency_osds": high_latency_osds
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": f"❌ Error fetching high-latency OSDs: {str(e)}"}
+    
+    finally:
+        cursor.close()
+        conn.close()
+
 
 

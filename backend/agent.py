@@ -3,7 +3,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, AgentType
 import streamlit as st
 from langchain_community.llms import Ollama
-from metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_cluster_health, get_diskoccupation
+from metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_cluster_health, get_diskoccupation, get_high_latency_osds
 from agno.storage.agent.postgres import PostgresAgentStorage
 
 
@@ -12,8 +12,8 @@ tools = [
     Tool(name="Get disk occupation", func=get_diskoccupation, description="Fetches the disk occupation per node."),
     Tool(name="Check degraded PGs", func=check_degraded_pgs, description="Checks degraded PGs."),
     Tool(name="Check recent OSD crashes", func=check_recent_osd_crashes, description="Checks recent OSD crashes."),
-    Tool(name="Check cluster health", func=get_cluster_health, description="Check cluster health", return_direct=True,  # Ensures the response is directly sent to the user
-    ),
+    Tool(name="Check cluster health", func=get_cluster_health, description="Check cluster health"),
+    Tool(name="Check high latency OSDs", func=get_high_latency_osds, description="Check high latency OSDs")
 ]
 
 # Memory for Conversation
