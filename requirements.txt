@@ -1,0 +1,5 @@
+streamlit
+langchain-community
+ollama
+paramiko
+agno
