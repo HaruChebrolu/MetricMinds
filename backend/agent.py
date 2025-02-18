@@ -4,6 +4,28 @@ from langchain.agents import initialize_agent, AgentType
 from langchain_community.llms import Ollama
 from metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_ceph_daemon_counts, get_cluster_health, get_diskoccupation, get_high_latency_osds
 from agno.storage.agent.postgres import PostgresAgentStorage
+from ibm_watson_machine_learning.foundation_models import Model
+from ibm_watson_machine_learning.metanames import GenTextParamsMetaNames as GenParams
+from ibm_watson_machine_learning.foundation_models.extensions.langchain import WatsonxLLM
+
+
+
+# Watsonx API credentials
+watsonx_api_key = "06oieqF7FH9zhP-3QqQSAr0cQpynEj0Py6jMFL_LSP2M"
+watsonx_url = "https://us-south.ml.cloud.ibm.com"
+
+generate_params = {GenParams.MAX_NEW_TOKENS: 25}
+
+# Initialize the model with specific parameters and credentials
+model = Model(
+    model_id="meta-llama/llama-3-70b-instruct",
+    credentials={"apikey": watsonx_api_key, "url": watsonx_url},
+    params=generate_params,  
+    project_id="29ff0149-2740-4032-a389-9f0088e58df3",
+)
+
+# Wrap the model with WatsonxLLM to use with LangChain
+llm = WatsonxLLM(model=model)
 
 # Define Tools
 tools = [
@@ -22,12 +44,6 @@ chat_history = memory.load_memory_variables({}).get("chat_history", [])
 if not isinstance(chat_history, list):
     chat_history = []
 
-# Language Model 
-'''llm = InferenceClient(
-    model="mistralai/Mistral-7B-Instruct-v0.1",
-    token=HUGGINGFACEHUB_API_TOKEN
-)'''
-llm = Ollama(model="llama3")
 
 agent_prompt = """You are a Ceph observability assistant. Only answer questions related to Ceph cluster status, health, storage, and performance. 
 If a query is unrelated to Ceph, respond with: 'I can only assist with Ceph-related queries.'

@@ -11,6 +11,9 @@ from langchain.tools import Tool
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, AgentType
 from langchain_community.llms import Ollama
+from ibm_watson_machine_learning.foundation_models import Model
+from ibm_watson_machine_learning.metanames import GenTextParamsMetaNames as GenParams
+from ibm_watson_machine_learning.foundation_models.extensions.langchain import WatsonxLLM
 
 # Tool Functions
 def get_disk_occupation(*args, **kwargs):
@@ -105,7 +108,25 @@ tools = [
 
 # Memory and LLM
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-llm = Ollama(model="llama3")
+# llm = Ollama(model="llama3")
+
+# Watsonx API credentials
+watsonx_api_key = "06oieqF7FH9zhP-3QqQSAr0cQpynEj0Py6jMFL_LSP2M"
+watsonx_url = "https://us-south.ml.cloud.ibm.com"
+
+# Initialize Watsonx LLM
+
+generate_params = {GenParams.MAX_NEW_TOKENS: 25}
+# Initialize the model with specific parameters and credentials
+model = Model(
+    model_id="ibm/granite-13b-instruct-v2",
+    credentials={"apikey": watsonx_api_key, "url": watsonx_url},
+    params=generate_params,  
+    project_id="29ff0149-2740-4032-a389-9f0088e58df3",
+)
+
+# Wrap the model with WatsonxLLM to use with LangChain
+llm = WatsonxLLM(model=model)
 
 db_url = 'postgresql://postgres:postgres@localhost:5432/postgres'
 
@@ -257,7 +278,29 @@ class ChatSession:
         self.messages = self.get_default_messages()
 
     def get_default_messages(self):
-        return []
+        return [
+            # {"role": "system", "content": "<p style='font-size:22px; font-weight:bold;'>Here are some available Ceph commands you can use:</p>"},
+
+            # # Connect to Cluster
+            # {"role": "system", "content": "<button style='font-size:20px; padding:10px; width:100%; text-align:left;' "
+            #             "onclick='send_command(\"Connect to Cluster 1\")'>🔗 <b>Connect to Cluster</b>: Establish connection to a Ceph cluster</button>"},
+
+            # # Cluster Health
+            # {"role": "system", "content": "<button style='font-size:20px; padding:10px; width:100%; text-align:left;' "
+            #             "onclick='send_command(\"Check Cluster Health\")'>💡 <b>Check Cluster Health</b>: Get the overall health status of the cluster</button>"},
+
+            # # Exit
+            # {"role": "system", "content": "<button style='font-size:20px; padding:10px; width:100%; text-align:left;' "
+            #             "onclick='send_command(\"exit\")'>❌ <b>Exit</b>: End the session</button>"},
+
+            # # JavaScript to Send Commands
+            # {"role": "system", "content": "<script>"
+            #             "function send_command(cmd) {"
+            #             "   const inputBox = window.parent.document.querySelector('input[type=\"text\"]');"
+            #             "   if (inputBox) { inputBox.value = cmd; inputBox.dispatchEvent(new Event('input', { bubbles: true })); }"
+            #             "}"
+            #             "</script>"}
+        ]
 
     def reset_user_messages(self):
         self.messages = self.get_default_messages()
