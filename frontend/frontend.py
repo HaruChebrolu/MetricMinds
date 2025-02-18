@@ -5,7 +5,7 @@ from agno.storage.agent.postgres import PostgresAgentStorage
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from backend.metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_cluster_health, get_diskoccupation, get_high_latency_osds
+from backend.metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_ceph_daemon_counts, get_cluster_health, get_diskoccupation, get_high_latency_osds
 from backend.scrape_metricsdata import scrape_metrics
 from langchain.tools import Tool
 from langchain.memory import ConversationBufferMemory
@@ -41,7 +41,7 @@ def getcluster_health(*args, **kwargs):
             [f"{response["health"]} \n "]
         )
     else:
-        return "❌ No high latency OSDs found or there was an issue with the data."
+        return "❌ Failed to get cluster health."
 
 def checkhigh_latency_osds(*args, **kwargs):
     response =  get_high_latency_osds(*args, **kwargs)
@@ -51,6 +51,15 @@ def checkhigh_latency_osds(*args, **kwargs):
         )
     else:
         return "❌ No high latency OSDs found or there was an issue with the data."
+    
+def getcount_of_daemons(*args, **kwargs):
+    response =  get_ceph_daemon_counts(*args, **kwargs)
+    if response:
+        return " ## 📊 **Ceph Daemon Count** \n" + "\n ".join(
+            [f"{response["message"]} \n "]
+        )
+    else:
+        return "❌ Failed to get count of daemons from cluster."
 
 # Define Tools
 tools = [
@@ -82,6 +91,12 @@ tools = [
         name="Check high latency OSDs",
         func=checkhigh_latency_osds,
         description="Check high latency OSDs",
+        return_direct=True,  # Ensures the response is directly sent to the user
+    ),
+    Tool(
+        name="Get daemons count",
+        func=getcount_of_daemons,
+        description="Get daemons count",
         return_direct=True,  # Ensures the response is directly sent to the user
     ),
 ]
@@ -128,8 +143,42 @@ def test_ssh_connection(ip, username, password):
         return str(e)  # Return the error message
 
 # Streamlit page configuration
-st.set_page_config(page_title="Observability AI Bot", page_icon="🤖")
-# st.title("🤖 Observability AI Bot")
+st.set_page_config(page_title="Observability AI Bot", page_icon="🤖", layout="wide")
+
+# Custom CSS for a more attractive UI
+st.markdown("""
+    <style>
+        body { font-family: 'Arial', sans-serif; }
+        .sidebar .sidebar-content { background-color: #1E1E1E; color: white; }
+        .sidebar h2 { color: #4CAF50; }
+        .chat-bubble { padding: 10px; border-radius: 10px; margin: 5px; }
+        .user-bubble { background-color: #E3F2FD; }
+        .bot-bubble { background-color: #D9F7BE; }
+    </style>
+""", unsafe_allow_html=True)
+
+# Custom chat message function
+def chat_message(role, content):
+    if role == "user":
+        st.markdown(f"""
+        <div class="chat-bubble user-bubble">
+            <strong>👤 You:</strong><br> {content}
+        </div>
+        """, unsafe_allow_html=True)
+    elif role == "assistant":
+        st.markdown(f"""
+        <div class="chat-bubble bot-bubble">
+            <strong>🤖 Bot:</strong><br> {content}
+        </div>
+        """, unsafe_allow_html=True)
+
+# Display the main title
+st.markdown("""
+    <h1 style='text-align: center; color: #4CAF50; font-size: 36px;'>🤖 Observability AI Bot</h1>
+    <p style='text-align: center; font-size: 18px; color: gray;'>Monitor and manage your Ceph cluster effortlessly</p>
+    <hr style='border: 1px solid #ccc;'>
+""", unsafe_allow_html=True)
+
 
 # Initialize session state for storing cluster data
 if "cluster_data" not in st.session_state:

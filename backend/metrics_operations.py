@@ -1,4 +1,8 @@
-from backend.connection import get_db_conn
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from connection import get_db_conn
 
 # Tool Functions
 def get_diskoccupation(*args, **kwargs):
@@ -199,6 +203,37 @@ def get_high_latency_osds(*args, **kwargs):
     except Exception as e:
         return {"status": "error", "message": f"❌ Error fetching high-latency OSDs: {str(e)}"}
     
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_ceph_daemon_counts(*args, **kwargs):
+    query = """
+    SELECT 'MON' AS daemon_type, COUNT(*) AS count FROM ceph_cephmonmetadata_metrics
+    UNION ALL
+    SELECT 'MGR' AS daemon_type, COUNT(*) AS count FROM ceph_cephmgrmetadata_metrics
+    UNION ALL
+    SELECT 'OSD' AS daemon_type, COUNT(*) AS count FROM ceph_cephosdmetadata_metrics;
+    """
+
+    conn = get_db_conn()
+    if not conn:
+        return {"message": "❌ Database connection failed."}
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        message = ""
+        for daemon_type, count in results:
+            message += f"\n **{daemon_type} Count**: {count}\n"
+
+        return {"status": "success", "message": message}
+
+    except Exception as e:
+        return {"status": "error", "message": f"❌ Error fetching Ceph daemon counts: {str(e)}"}
+
     finally:
         cursor.close()
         conn.close()

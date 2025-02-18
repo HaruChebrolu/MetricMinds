@@ -1,11 +1,9 @@
 from langchain.tools import Tool
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, AgentType
-import streamlit as st
 from langchain_community.llms import Ollama
-from metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_cluster_health, get_diskoccupation, get_high_latency_osds
+from metrics_operations import check_degraded_pgs, check_recent_osd_crashes, get_ceph_daemon_counts, get_cluster_health, get_diskoccupation, get_high_latency_osds
 from agno.storage.agent.postgres import PostgresAgentStorage
-
 
 # Define Tools
 tools = [
@@ -13,7 +11,8 @@ tools = [
     Tool(name="Check degraded PGs", func=check_degraded_pgs, description="Checks degraded PGs."),
     Tool(name="Check recent OSD crashes", func=check_recent_osd_crashes, description="Checks recent OSD crashes."),
     Tool(name="Check cluster health", func=get_cluster_health, description="Check cluster health"),
-    Tool(name="Check high latency OSDs", func=get_high_latency_osds, description="Check high latency OSDs")
+    Tool(name="Check high latency OSDs", func=get_high_latency_osds, description="Check high latency OSDs"),
+    Tool(name="Check count of daemons", func=get_ceph_daemon_counts, description="Check count of daemons")
 ]
 
 # Memory for Conversation
@@ -30,15 +29,24 @@ if not isinstance(chat_history, list):
 )'''
 llm = Ollama(model="llama3")
 
+agent_prompt = """You are a Ceph observability assistant. Only answer questions related to Ceph cluster status, health, storage, and performance. 
+If a query is unrelated to Ceph, respond with: 'I can only assist with Ceph-related queries.'
+
+- If the user asks for **disk occupation** (e.g., "Get disk occupation"), always use `Get disk occupation`.
+- If the user asks for **cluster status** (e.g., "What is the status of Cluster 1?"), always use `Check cluster health`.
+- If the user asks to **list OSDs**, use `Check count of daemons`.
+
+Do not make assumptions. Only respond with the correct tool.
+Do NOT guess. Only respond using the correct tool.
+"""
+
 def query_llm(prompt: str):
     return llm.text_generation(prompt, max_new_tokens=100)
 
+# DB connection
 db_url = 'postgresql://postgres:postgres@localhost:5432/postgres'
-
 storage = PostgresAgentStorage(
-    # store sessions in the ai.sessions table
     table_name="agent_sessions",
-    # db_url: Postgres database URL
     db_url=db_url,
 )
 
@@ -46,6 +54,7 @@ storage = PostgresAgentStorage(
 agent = initialize_agent(
     storage=storage,
     tools=tools,
+    prompt=agent_prompt,
     llm=llm,
     agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
     memory=memory,
@@ -53,21 +62,9 @@ agent = initialize_agent(
     handle_parsing_errors=True
 )
 
+# Process query
 def process_query(query: str):
     return agent.run(query)
-
-def main_agentic_streamlit():
-    # Streamlit UI Configuration
-    st.set_page_config(page_title="CICD Chatbot (Agentic)", page_icon="🤖")
-    st.markdown("<h1 style='text-align: center;'>🤖 Welcome to CICD Chatbot!</h1>", unsafe_allow_html=True)
-
-    # User input
-    prompt = st.chat_input("Type your command (e.g., trigger job, last build summary)...")
-
-    if prompt:
-        with st.spinner("Thinking..."):
-            response = process_query(prompt)
-            st.write(response)
 
 def main_agentic():
     while True:
