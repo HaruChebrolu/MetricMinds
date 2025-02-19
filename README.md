@@ -22,8 +22,8 @@ ollama pull deepseek-r1
 
 # To run the UI Bot (frontend) code
 1. source venv/bin/activate
-2. git clone git@github.com:HaruChebrolu/agentic-observability-bot.git
-3. cd agentic-observability-bot/
+2. git clone git@github.com:HaruChebrolu/MetricMinds.git
+3. cd MetricMinds/
 4. update username,password and database values in backend/.env
 5. pip install -r backend/requirements.txt
 6. pip install -r frontend/requirements.txt
@@ -33,8 +33,8 @@ ollama pull deepseek-r1
 # To run the UI Bot backend code
 1. python3 -m venv venv
 2. source venv/bin/activate
-3. git clone git@github.com:HaruChebrolu/agentic-observability-bot.git
-4. cd agentic-observability-bot/
+3. git clone git@github.com:HaruChebrolu/MetricMinds.git
+4. cd MetricMinds/
 5. update username,password and database values in backend/.env
 6. pip install -r frontend/requirements.txt
 7. cd backend
