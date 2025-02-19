@@ -111,7 +111,7 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 # llm = Ollama(model="llama3")
 
 # Watsonx API credentials
-watsonx_api_key = "06oieqF7FH9zhP-3QqQSAr0cQpynEj0Py6jMFL_LSP2M"
+watsonx_api_key = "<watsonx_api_key>"
 watsonx_url = "https://us-south.ml.cloud.ibm.com"
 
 # Initialize Watsonx LLM
