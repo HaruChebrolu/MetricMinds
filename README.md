@@ -4,6 +4,10 @@ Agentic AI implementation of observability
 # Supported python version
 >=python 3.10
 
+# Architecture
+<img width="1056" alt="Screenshot 2025-02-17 at 6 26 01 PM" src="https://github.com/user-attachments/assets/59068685-8df9-4e90-959d-76f9502df1a2" />
+
+
 # Pre-requisites
 
 1. Have ceph cluster with prometheus and telemetry enabled.
