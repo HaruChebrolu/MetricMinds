@@ -1,4 +1,4 @@
-# agentic-observability-bot
+# MetricMinds
 Agentic AI implementation of observability 
 
 # Supported python version
