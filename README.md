@@ -10,7 +10,7 @@ Agentic AI implementation of observability
 2. PostgreSQL should be up and running.
 3. python3.10 is supported version
 4. ollama to be installed in your machine.
-5. Run
+5. (if we want to run any LLM model) Run
 ```
 ollama pull deepseek-r1
 ```
